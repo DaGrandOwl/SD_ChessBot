@@ -10,8 +10,8 @@ class Program
   static sbyte[] Board = new sbyte[128];
   static int SqIndex(int file, int rank) => (rank << 4) | file; //Square Indexing
   static void BoardInit() //Initialize Board as regular starting position
-  {//Change string to test custom positions. Has to be 64 characters
-    string startPos = "RNBQKBNRPPPPPPPP................................pppppppprnbqkbnr";
+  {
+    string startPos = "RNBQKBNRPPPPPPPP................................pppppppprnbqkbnr"; //Change this str to test custom position, keep 64 chars
     for (int i = 0; i < 64; i++)
     {
       char tile = startPos[i];
@@ -36,15 +36,48 @@ class Program
     }
   }
 
-  static void PrintBoard(){
-  for(int r=7;r>=0;r--){
-    for(int f=0;f<8;f++){
-      sbyte p=Board[SqIndex(f,r)];
-      Console.Write(p==0?'.':p>0?"PNBRQK"[p-1]:"pnbrqk"[-p-1]);
-    }
-    Console.WriteLine();
+  //---Move Making---
+  static void MakeMove(int from, int to)
+  {
+    Board[to] = Board[from];
+    Board[from] = 0;
   }
-}
+
+  static void Promote(int from, int to, int promo)
+  {
+    Board[to] = (sbyte) (Board[from] > 0 ? promo : -promo); //TEMP manually specifically for colour
+    Board[from] = 0;
+  }
+
+  //---Formatting UCI Moves---
+  //Convert LAN to board positions
+  static void MoveFromUCIstr(string uciMove, out int from, out int to, out int promo)
+  {
+      from = SqIndex(uciMove[0] - 'a', uciMove[1] - '1'); //Subtracts ASCII value of 'a'or'1' to get 0-7 range
+      to = SqIndex(uciMove[2] - 'a', uciMove[3] - '1');
+      promo = uciMove.Length == 5 ? uciMove[4] switch
+      {
+          'q' => Q,
+          'r' => R,
+          'b' => B,
+          'n' => N,
+          _ => 0
+      } : 0;
+  }
+
+  //TEMP for TESTing
+  static void PrintBoard()
+  {
+    for (int r = 7; r >= 0; r--)
+    {
+      for (int f = 0; f < 8; f++)
+      {
+        sbyte p = Board[SqIndex(f, r)];
+        Console.Write(p == 0 ? '.' : p > 0 ? "PNBRQK"[p - 1] : "pnbrqk"[-p - 1]);
+      }
+      Console.WriteLine();
+    }
+  }
 
   //---UCI Protocol---
   static void Main()
@@ -62,11 +95,16 @@ class Program
           WriteLine("readyok");
           break;
         case "position":
-          if (cmd.Length == 4) //If true playing as black. Else, default is playing as white
+          BoardInit();
+          if (cmd.Length > 2) // 1 move has been played
           {
-            //TEMP
+            for (int i = 3; i < cmd.Length; i++) //First move is 4th word
+            {
+              MoveFromUCIstr(cmd[i], out int from, out int to, out int promo);
+              if (promo > 0) Promote(from, to, promo);
+              else MakeMove(from, to);
+            }
           }
-          //Call to update board position
           WriteLine("position set");
           break;
         case "go":
@@ -75,7 +113,6 @@ class Program
         case "quit":
           return;
         case "test"://TEMP 
-          BoardInit();
           PrintBoard();
           break;
       }
