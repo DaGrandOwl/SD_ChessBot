@@ -2,8 +2,9 @@
 using System;
 using static System.Math;
 
+//Trojan Fischer
 public class MyBot : IChessBot {
-    public int searchDepth, lastScore;
+    public int maxTime, searchDepth, lastScore;
     
     Move rootBestMove, bestMove;
     Board board;
@@ -12,10 +13,11 @@ public class MyBot : IChessBot {
     public Move Think(Board boardB, Timer timerT) {
         board = boardB;
         timer = timerT;
-
+        maxTime = timer.MillisecondsRemaining/4;
+        searchDepth = 1;
         do
             try
-            {   // https://www.chessprogramming.org/Aspiration_Windows
+            {
                 if (Abs(lastScore - Negamax(lastScore-25, lastScore+25, searchDepth)) >= 25) //Window=25, tune if needed
                     Negamax(-32000, 32000, searchDepth);
                 rootBestMove = bestMove;
@@ -25,7 +27,7 @@ public class MyBot : IChessBot {
                 break;
             }
         while (
-            searchDepth++ < 100 && (timer.MillisecondsElapsedThisTurn < timer.MillisecondsRemaining 10)//TEMP need to tune during testing
+            searchDepth++ < 50 && (timer.MillisecondsElapsedThisTurn < maxTime/5)//TEMP need to tune during testing
         );
         return rootBestMove;
     }
@@ -34,7 +36,7 @@ public class MyBot : IChessBot {
         if (depth == 0)
             return Eval(board);
         
-        if (timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining && searchDepth > 1)
+        if (timer.MillisecondsElapsedThisTurn >= maxTime && searchDepth > 1)
             throw new Exception();
 
         var legalMoves = board.GetLegalMoves();
