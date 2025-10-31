@@ -85,6 +85,8 @@ public class MyBot : IChessBot {
     {
         int side = board.IsWhiteToMove ? 1 : -1;
         var score = Eval(side) * side;
+        if (board.IsInCheckmate())
+            return board.IsWhiteToMove ? -1 : 1;
         if (score >= beta) 
             return beta;
         alpha = Max(alpha, score);
@@ -115,6 +117,9 @@ public class MyBot : IChessBot {
         if (depth == 0)
             return Quiescence(alpha, beta);
         
+        if (board.IsInCheckmate())
+            return board.IsWhiteToMove ? -1 : 1;
+
         if (timer.MillisecondsElapsedThisTurn >= timer.MillisecondsRemaining/8 && searchDepth > 2)
             throw new Exception();
         
